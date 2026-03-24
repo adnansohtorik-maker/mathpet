@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#9b72cf">
+<title>Math Pet</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1828;
+    --surface2: #242236;
+    --border: rgba(255,255,255,0.08);
+    --text: #fffffe;
+    --text2: #a7a9be;
+    --green: #3ddc97;
+    --green-dim: #1a4d36;
+    --amber: #ffca3a;
+    --amber-dim: #4a3800;
+    --red: #ff6b6b;
+    --red-dim: #4a1a1a;
+    --purple: #9b72cf;
+    --purple-dim: #2a1a4a;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    background-image: radial-gradient(ellipse at 20% 20%, rgba(155,114,207,0.08) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 80%, rgba(61,220,151,0.06) 0%, transparent 60%);
+  }
+  header {
+    width: 100%; max-width: 560px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .app-title {
+    font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--green), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .tab-btns { display: flex; gap: 6px; }
+  .tab-btn {
+    padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text2); font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn.active, .tab-btn:hover { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .tab-btn.active { color: var(--green); border-color: var(--green); }
+
+  /* GAME VIEW */
+  #view-game, #view-scores { width: 100%; max-width: 560px; }
+  #view-scores { display: none; }
+
+  /* PET CARD */
+  .pet-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  #pet-canvas { flex-shrink: 0; border-radius: 50%; background: var(--surface2); }
+  .pet-info { flex: 1; }
+  .pet-stage-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .pet-stage-badge {
+    font-size: 11px; font-weight: 800; padding: 3px 10px;
+    border-radius: 20px; background: var(--purple-dim); color: var(--purple);
+    font-family: 'Space Mono', monospace; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .pet-name-text { font-size: 13px; color: var(--text2); }
+  .mini-stats { display: flex; flex-direction: column; gap: 6px; }
+  .mini-stat-row { display: flex; align-items: center; gap: 8px; }
+  .mini-stat-label { font-size: 11px; color: var(--text2); width: 64px; font-weight: 700; }
+  .mini-bar-bg { flex: 1; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+  .mini-bar { height: 5px; border-radius: 3px; transition: width 0.5s; }
+  .mini-stat-val { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--text2); width: 32px; text-align: right; }
+
+  /* DIFF BUTTONS */
+  .diff-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .diff-btn {
+    flex: 1; padding: 9px 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 800;
+    cursor: pointer; color: var(--text2);
+    transition: all 0.2s; text-align: center;
+  }
+  .diff-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .diff-btn.active-beginner { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .diff-btn.active-intermediate { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+  .diff-btn.active-advanced { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+  .diff-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+  /* QUIZ CARD */
+  .quiz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .quiz-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .score-text { font-size: 13px; color: var(--text2); font-weight: 700; font-family: 'Space Mono', monospace; }
+  .streak-text { font-size: 13px; color: var(--green); font-weight: 800; }
+  .diff-tag {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    font-weight: 800; font-family: 'Space Mono', monospace; text-transform: uppercase;
+  }
+
+  /* TIMER */
+  .timer-wrap { margin-bottom: 14px; }
+  .timer-top { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .timer-label { font-size: 11px; color: var(--text2); font-weight: 700; }
+  .timer-num { font-size: 13px; font-family: 'Space Mono', monospace; font-weight: 700; }
+  .timer-bar-bg { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+  .timer-bar { height: 6px; border-radius: 3px; transition: width 0.9s linear, background 0.5s; }
+
+  /* QUESTION */
+  .question-text {
+    font-size: 16px; font-weight: 800; color: var(--text);
+    margin-bottom: 14px; line-height: 1.5;
+  }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .opt-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 11px 16px;
+    font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--text); cursor: pointer; text-align: left;
+    transition: all 0.15s;
+  }
+  .opt-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.2); background: #2d2b42; }
+  .opt-btn.correct { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .opt-btn.wrong { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+  .opt-btn.timeout { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+  .feedback {
+    font-size: 13px; margin-top: 12px; min-height: 18px;
+    font-weight: 700;
+  }
+  .next-btn {
+    margin-top: 14px; width: 100%; padding: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 800;
+    cursor: pointer; color: var(--text); display: none;
+    transition: all 0.2s;
+  }
+  .next-btn:hover { background: #2d2b42; border-color: rgba(255,255,255,0.25); }
+
+  /* Android touch optimizations */
+  body { -webkit-tap-highlight-color: transparent; touch-action: pan-y; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .opt-btn, .next-btn, .diff-btn, .tab-btn, .scores-tab, .modal-save-btn, .clear-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 44px; }
+  .opt-btn:active:not(:disabled) { opacity: 0.8; transform: scale(0.98); }
+  /* SCORE ENTRY MODAL */
+  .score-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .score-modal.show { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    width: 100%; max-width: 360px;
+    text-align: center;
+  }
+  .modal-title { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+  .modal-score { font-size: 36px; font-weight: 900; color: var(--green); font-family: 'Space Mono', monospace; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 18px; }
+  .modal-input {
+    width: 100%; padding: 11px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+    outline: none; margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: var(--green); }
+  .modal-save-btn {
+    width: 100%; padding: 12px;
+    background: var(--green); color: #0f0e17;
+    border: none; border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .modal-save-btn:hover { opacity: 0.85; }
+  .modal-skip { margin-top: 10px; font-size: 13px; color: var(--text2); cursor: pointer; }
+  .modal-skip:hover { color: var(--text); }
+
+  /* SCORES VIEW */
+  .scores-header { margin-bottom: 20px; }
+  .scores-title { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+  .scores-sub { font-size: 13px; color: var(--text2); }
+  .scores-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .scores-tab {
+    padding: 7px 16px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text2);
+    font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .scores-tab.active { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .scores-tab.active[data-diff="beginner"] { color: var(--green); border-color: var(--green); }
+  .scores-tab.active[data-diff="intermediate"] { color: var(--amber); border-color: var(--amber); }
+  .scores-tab.active[data-diff="advanced"] { color: var(--red); border-color: var(--red); }
+  .score-list { display: flex; flex-direction: column; gap: 8px; }
+  .score-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .score-row:hover { border-color: rgba(255,255,255,0.15); }
+  .score-rank {
+    font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+    color: var(--text2); width: 28px; text-align: center; flex-shrink: 0;
+  }
+  .score-rank.gold { color: #ffd700; }
+  .score-rank.silver { color: #c0c0c0; }
+  .score-rank.bronze { color: #cd7f32; }
+  .score-player { flex: 1; font-size: 15px; font-weight: 800; }
+  .score-details { text-align: right; }
+  .score-pts { font-size: 17px; font-weight: 900; font-family: 'Space Mono', monospace; }
+  .score-pts.beginner { color: var(--green); }
+  .score-pts.intermediate { color: var(--amber); }
+  .score-pts.advanced { color: var(--red); }
+  .score-meta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .no-scores { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 14px; }
+  .clear-btn {
+    margin-top: 16px; padding: 9px 20px;
+    border: 1px solid var(--border); background: transparent;
+    border-radius: var(--radius-sm); color: var(--text2);
+    font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .clear-btn:hover { border-color: var(--red); color: var(--red); }
+  .evolve-toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    background: var(--purple-dim); border: 1px solid var(--purple);
+    color: var(--purple); padding: 10px 20px;
+    border-radius: 20px; font-size: 14px; font-weight: 800;
+    font-family: 'Space Mono', monospace; z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  .evolve-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-title">Math Pet</div>
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="showView('game')">Oyun</button>
+    <button class="tab-btn" onclick="showView('scores')">Skorlar</button>
+  </div>
+</header>
+
+<!-- GAME VIEW -->
+<div id="view-game">
+  <div class="pet-card">
+    <canvas id="pet-canvas" width="100" height="100"></canvas>
+    <div class="pet-info">
+      <div class="pet-stage-row">
+        <span class="pet-stage-badge" id="level-badge">Egg</span>
+        <span class="pet-name-text" id="pet-name">Cevapla ve evcil hayvanını büyüt!</span>
+      </div>
+      <div class="mini-stats">
+        <div class="mini-stat-row">
+          <span class="mini-stat-label">Mutluluk</span>
+          <div class="mini-bar-bg"><div class="mini-bar" id="bar-happy" style="width:40%;background:#9b72cf;"></div></div>
+          <span class="mini-stat-val" id="val-happy">40</span>
+        </div>
+        <div class="mini-stat-row">
+          <span class="mini-stat-label">Enerji</span>
+          <div class="mini-bar-bg"><div class="mini-bar" id="bar-energy" style="width:50%;background:#3ddc97;"></div></div>
+          <span class="mini-stat-val" id="val-energy">50</span>
+        </div>
+        <div class="mini-stat-row">
+          <span class="mini-stat-label">XP</span>
+          <div class="mini-bar-bg"><div class="mini-bar" id="bar-xp" style="width:0%;background:#ffca3a;"></div></div>
+          <span class="mini-stat-val" id="val-xp">0/3</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diff-row">
+    <button class="diff-btn active-beginner" id="btn-beginner" onclick="setDiff('beginner')">
+      <span class="diff-dot" style="background:#3ddc97;"></span>Başlangıç
+    </button>
+    <button class="diff-btn" id="btn-intermediate" onclick="setDiff('intermediate')">
+      <span class="diff-dot" style="background:#ffca3a;"></span>Orta
+    </button>
+    <button class="diff-btn" id="btn-advanced" onclick="setDiff('advanced')">
+      <span class="diff-dot" style="background:#ff6b6b;"></span>İleri
+    </button>
+  </div>
+
+  <div class="quiz-card">
+    <div class="quiz-meta">
+      <span class="score-text" id="score-text">Skor: 0</span>
+      <span class="streak-text" id="streak-text"></span>
+      <span class="diff-tag" id="diff-tag" style="background:#1a4d36;color:#3ddc97;">BAŞLANGIÇ</span>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer-top">
+        <span class="timer-label">Kalan süre</span>
+        <span class="timer-num" id="timer-num" style="color:#3ddc97;">30s</span>
+      </div>
+      <div class="timer-bar-bg"><div class="timer-bar" id="timer-bar" style="width:100%;background:#3ddc97;"></div></div>
+    </div>
+    <div class="question-text" id="question-text">Yükleniyor...</div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Sonraki soru →</button>
+  </div>
+</div>
+
+<!-- SCORES VIEW -->
+<div id="view-scores">
+  <div class="scores-header">
+    <div class="scores-title">Yüksek Skorlar</div>
+    <div class="scores-sub">En iyi 10 skor, seviyeye göre</div>
+  </div>
+  <div class="scores-tabs">
+    <button class="scores-tab active" data-diff="beginner" onclick="showScoreTab('beginner')">Başlangıç</button>
+    <button class="scores-tab" data-diff="intermediate" onclick="showScoreTab('intermediate')">Orta</button>
+    <button class="scores-tab" data-diff="advanced" onclick="showScoreTab('advanced')">İleri</button>
+  </div>
+  <div class="score-list" id="score-list"></div>
+  <button class="clear-btn" onclick="clearScores()">Skorları Sıfırla</button>
+</div>
+
+<!-- SCORE ENTRY MODAL -->
+<div class="score-modal" id="score-modal">
+  <div class="modal-box">
+    <div class="modal-title">Oyun Bitti!</div>
+    <div class="modal-score" id="modal-score-num">0</div>
+    <div class="modal-sub" id="modal-sub">Skorunu kaydetmek ister misin?</div>
+    <input class="modal-input" id="modal-name" placeholder="Adını gir..." maxlength="20" />
+    <button class="modal-save-btn" onclick="saveScore()">Skoru Kaydet</button>
+    <div class="modal-skip" onclick="closeModal()">Geç →</div>
+  </div>
+</div>
+
+<div class="evolve-toast" id="evolve-toast"></div>
+
+<script>
+const TIMER_MAX = 30;
+const GAME_QUESTIONS = 10;
+
+const allQuestions = {
+  beginner: [
+    { q: "7 × 8 = ?", opts: ["54","56","62","48"], ans: 1 },
+    { q: "15 + 27 = ?", opts: ["40","42","44","38"], ans: 1 },
+    { q: "100 ÷ 4 = ?", opts: ["20","30","25","15"], ans: 2 },
+    { q: "9 × 9 = ?", opts: ["72","81","79","84"], ans: 1 },
+    { q: "48 ÷ 6 = ?", opts: ["6","9","7","8"], ans: 3 },
+    { q: "13 + 19 = ?", opts: ["30","33","32","31"], ans: 2 },
+    { q: "6 × 7 = ?", opts: ["36","48","42","40"], ans: 2 },
+    { q: "84 ÷ 12 = ?", opts: ["6","8","9","7"], ans: 3 },
+    { q: "25 × 4 = ?", opts: ["80","90","100","120"], ans: 2 },
+    { q: "55 - 18 = ?", opts: ["37","38","36","39"], ans: 0 },
+    { q: "3³ = ?", opts: ["9","18","27","24"], ans: 2 },
+    { q: "180'in %50'si = ?", opts: ["80","85","100","90"], ans: 3 },
+  ],
+  intermediate: [
+    { q: "√144 = ?", opts: ["11","13","14","12"], ans: 3 },
+    { q: "200'ün %15'i = ?", opts: ["25","35","30","20"], ans: 2 },
+    { q: "12² = ?", opts: ["124","144","134","154"], ans: 1 },
+    { q: "3x + 6 = 21 → x = ?", opts: ["4","6","5","7"], ans: 2 },
+    { q: "2⁸ = ?", opts: ["128","256","64","512"], ans: 1 },
+    { q: "400'ün %35'i = ?", opts: ["120","130","150","140"], ans: 3 },
+    { q: "2x - 4 = 10 → x = ?", opts: ["6","8","5","7"], ans: 3 },
+    { q: "r=5 çemberin alanı? (π≈3.14)", opts: ["78.5","31.4","62.8","50"], ans: 0 },
+    { q: "4 ve 6'nın OKEK'i = ?", opts: ["8","24","18","12"], ans: 3 },
+    { q: "17² - 15² = ?", opts: ["62","64","66","60"], ans: 1 },
+    { q: "(3x²)(4x³) = ?", opts: ["7x⁵","12x⁵","12x⁶","7x⁶"], ans: 1 },
+    { q: "3/4 + 5/8 = ?", opts: ["8/12","11/8","13/8","3/2"], ans: 2 },
+  ],
+  advanced: [
+    { q: "d/dx (x³) = ?", opts: ["x²","2x²","3x²","3x³"], ans: 2 },
+    { q: "∫2x dx = ?", opts: ["x² + C","2x² + C","x + C","2 + C"], ans: 0 },
+    { q: "x² - 5x + 6 = 0 → kökler?", opts: ["2 ve 4","1 ve 6","3 ve 2","2 ve 3"], ans: 3 },
+    { q: "log₂(64) = ?", opts: ["4","8","5","6"], ans: 3 },
+    { q: "Altıgenin iç açılar toplamı?", opts: ["540°","900°","1080°","720°"], ans: 3 },
+    { q: "f(x) = 3x² + 2x → f'(x) = ?", opts: ["3x + 2","6x + 2","6x","3x"], ans: 1 },
+    { q: "e⁰ = ?", opts: ["0","e","tanımsız","1"], ans: 3 },
+    { q: "det([[2,3],[1,4]]) = ?", opts: ["8","11","5","14"], ans: 2 },
+    { q: "|2x - 3| = 7 → pozitif çözüm?", opts: ["4","6","5","3"], ans: 2 },
+    { q: "4 ve 16'nın geometrik ortalaması?", opts: ["8","10","6","12"], ans: 0 },
+    { q: "sin²θ + cos²θ = ?", opts: ["0","2","sinθ","1"], ans: 3 },
+    { q: "lim(x→0) sin(x)/x = ?", opts: ["0","∞","tanımsız","1"], ans: 3 },
+  ]
+};
+
+const diffConfig = {
+  beginner:     { xpPerCorrect:1, xpNeeded:[3,5,7,9,12,999], happyBonus:10, label:'BAŞLANGIÇ', tagStyle:'background:#1a4d36;color:#3ddc97;' },
+  intermediate: { xpPerCorrect:2, xpNeeded:[4,7,10,14,18,999], happyBonus:12, label:'ORTA',      tagStyle:'background:#4a3800;color:#ffca3a;' },
+  advanced:     { xpPerCorrect:3, xpNeeded:[5,8,12,16,22,999], happyBonus:15, label:'İLERİ',     tagStyle:'background:#4a1a1a;color:#ff6b6b;' },
+};
+const stages = ['Egg','Hatchling','Baby','Juvenile','Teen','Adult'];
+const stageNamesTR = ['Yumurta','Yavru','Bebek','Genç','Ergen','Yetişkin'];
+
+let diff = 'beginner';
+let state = { stage:0, xp:0, happy:40, energy:50, score:0, streak:0, qIndex:0, answered:false, shuffled:[], petMood:'neutral', petAnim:0, questionsAnswered:0 };
+let timerInterval = null, timeLeft = TIMER_MAX;
+let currentScoreDiff = 'beginner';
+
+function shuffle(arr){ let a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a; }
+state.shuffled = shuffle([...Array(allQuestions[diff].length).keys()]);
+
+// CANVAS PET
+const canvas = document.getElementById('pet-canvas');
+const ctx = canvas.getContext('2d');
+
+function drawPet(mood, stage, anim) {
+  ctx.clearRect(0,0,100,100);
+  const cx=50,cy=50,t=anim*0.08,bounce=Math.sin(t)*(mood==='happy'?3:0.8);
+  const cols=[
+    {body:'#2a1a4a',outline:'#9b72cf',eye:'#c9a8f0'},
+    {body:'#1a4d36',outline:'#3ddc97',eye:'#a0f0d0'},
+    {body:'#4a3800',outline:'#ffca3a',eye:'#ffe080'},
+    {body:'#3a1a2a',outline:'#cf72a0',eye:'#f0a8c9'},
+    {body:'#1a2a4a',outline:'#72a0cf',eye:'#a8c9f0'},
+    {body:'#4a1a1a',outline:'#ff6b6b',eye:'#ffaaaa'},
+  ];
+  const col=cols[Math.min(stage,cols.length-1)];
+  if(stage===0){
+    ctx.save();ctx.translate(cx,cy+bounce);
+    ctx.beginPath();ctx.ellipse(0,3,18,23,0,0,Math.PI*2);ctx.fillStyle=col.body;ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.5;ctx.stroke();
+    if(mood==='happy'){
+      ctx.beginPath();ctx.arc(-4,-5,2.5,0,Math.PI*2);ctx.fillStyle=col.eye;ctx.fill();
+      ctx.beginPath();ctx.arc(4,-5,2.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(0,1,5,0.2,Math.PI-0.2);ctx.strokeStyle=col.eye;ctx.lineWidth=1.5;ctx.stroke();
+    } else {
+      ctx.beginPath();ctx.arc(-4,-5,2,0,Math.PI*2);ctx.fillStyle=col.eye;ctx.fill();
+      ctx.beginPath();ctx.arc(4,-5,2,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();return;
+  }
+  const s=13+stage*4;
+  ctx.save();ctx.translate(cx,cy+bounce);
+  ctx.beginPath();ctx.ellipse(0,s*0.1,s,s*1.1,0,0,Math.PI*2);ctx.fillStyle=col.body;ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.5;ctx.stroke();
+  const hr=s*0.7,hy=-s*0.9;
+  ctx.beginPath();ctx.arc(0,hy,hr,0,Math.PI*2);ctx.fillStyle=col.body;ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.5;ctx.stroke();
+  const eo=hr*0.35,ey=hy-hr*0.1;
+  ctx.fillStyle=col.eye;
+  if(mood==='happy'){
+    ctx.beginPath();ctx.arc(-eo,ey,hr*0.13,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(eo,ey,hr*0.13,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(0,hy+hr*0.2,hr*0.22,0.1,Math.PI-0.1);ctx.strokeStyle=col.eye;ctx.lineWidth=1.5;ctx.stroke();
+  } else if(mood==='sad'){
+    ctx.beginPath();ctx.ellipse(-eo,ey,hr*0.12,hr*0.08,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(eo,ey,hr*0.12,hr*0.08,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(0,hy+hr*0.3,hr*0.22,Math.PI+0.1,-0.1);ctx.strokeStyle=col.eye;ctx.lineWidth=1.5;ctx.stroke();
+  } else {
+    ctx.beginPath();ctx.arc(-eo,ey,hr*0.13,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(eo,ey,hr*0.13,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(0,hy+hr*0.25,hr*0.18,0.2,Math.PI-0.2);ctx.strokeStyle=col.eye;ctx.lineWidth=1.2;ctx.stroke();
+  }
+  if(stage>=2){
+    ctx.beginPath();ctx.ellipse(-hr*0.7,hy-hr*0.8,hr*0.22,hr*0.35,-0.3,0,Math.PI*2);ctx.fillStyle=col.body;ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(hr*0.7,hy-hr*0.8,hr*0.22,hr*0.35,0.3,0,Math.PI*2);ctx.fillStyle=col.body;ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.5;ctx.stroke();
+  }
+  if(stage>=3){
+    ctx.beginPath();ctx.moveTo(s*0.7,s*0.2);ctx.bezierCurveTo(s*1.4,0,s*1.4,-s*0.5,s*0.9,-s*0.3);ctx.strokeStyle=col.outline;ctx.lineWidth=2.5;ctx.stroke();
+  }
+  if(stage>=4){
+    ctx.beginPath();ctx.ellipse(-s*1.1,s*0.1,s*0.5,s*0.25,-0.4,0,Math.PI*2);ctx.fillStyle=col.body+'cc';ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.2;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(s*1.1,s*0.1,s*0.5,s*0.25,0.4,0,Math.PI*2);ctx.fillStyle=col.body+'cc';ctx.fill();ctx.strokeStyle=col.outline;ctx.lineWidth=1.2;ctx.stroke();
+  }
+  ctx.restore();
+  if(mood==='evolve'){
+    for(let i=0;i<6;i++){
+      const angle=(i/6)*Math.PI*2+t,r=34+Math.sin(t*2+i)*5;
+      ctx.save();ctx.translate(cx+Math.cos(angle)*r,cy+Math.sin(angle)*r);
+      ctx.fillStyle='#ffca3a';ctx.beginPath();
+      for(let j=0;j<5;j++){ctx.lineTo(Math.cos((j*4/5-0.5)*Math.PI*2)*4,Math.sin((j*4/5-0.5)*Math.PI*2)*4);}
+      ctx.closePath();ctx.fill();ctx.restore();
+    }
+  }
+}
+function animate(){ state.petAnim++; drawPet(state.petMood,state.stage,state.petAnim); requestAnimationFrame(animate); }
+animate();
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timeLeft=TIMER_MAX; updateTimerUI();
+  timerInterval=setInterval(()=>{ timeLeft--; updateTimerUI(); if(timeLeft<=0){clearInterval(timerInterval);onTimeout();} },1000);
+}
+function updateTimerUI(){
+  const pct=(timeLeft/TIMER_MAX)*100;
+  const bar=document.getElementById('timer-bar'),num=document.getElementById('timer-num');
+  bar.style.width=pct+'%';
+  const col = timeLeft>15?'#3ddc97':timeLeft>8?'#ffca3a':'#ff6b6b';
+  bar.style.background=col; num.style.color=col;
+  num.textContent=timeLeft+'s';
+}
+function onTimeout(){
+  if(state.answered)return;
+  state.answered=true;
+  const correct=allQuestions[diff][state.shuffled[state.qIndex]].ans;
+  document.querySelectorAll('.opt-btn').forEach((b,i)=>{ b.disabled=true; if(i===correct)b.classList.add('timeout'); });
+  state.streak=0; state.happy=Math.max(0,state.happy-12); state.energy=Math.max(0,state.energy-8); state.petMood='sad';
+  const fb=document.getElementById('feedback');
+  fb.style.color='#ffca3a';
+  fb.textContent='Süre doldu! Cevap: '+allQuestions[diff][state.shuffled[state.qIndex]].opts[correct];
+  state.questionsAnswered++;
+  updateStats();
+  document.getElementById('next-btn').style.display='block';
+  checkGameOver();
+}
+function setDiff(d){
+  diff=d;
+  ['beginner','intermediate','advanced'].forEach(x=>{ document.getElementById('btn-'+x).className='diff-btn'+(x===d?' active-'+x:''); });
+  const cfg=diffConfig[d];
+  document.getElementById('diff-tag').textContent=cfg.label;
+  document.getElementById('diff-tag').style.cssText=cfg.tagStyle;
+  state.qIndex=0; state.shuffled=shuffle([...Array(allQuestions[d].length).keys()]); state.answered=false;
+  state.score=0; state.streak=0; state.questionsAnswered=0;
+  loadQuestion();
+}
+function updateStats(){
+  const cfg=diffConfig[diff]; const xpNeeded=cfg.xpNeeded[state.stage];
+  const xpPct=Math.min(100,(state.xp/xpNeeded)*100);
+  document.getElementById('bar-happy').style.width=state.happy+'%';
+  document.getElementById('bar-energy').style.width=state.energy+'%';
+  document.getElementById('bar-xp').style.width=xpPct+'%';
+  document.getElementById('val-happy').textContent=state.happy;
+  document.getElementById('val-energy').textContent=state.energy;
+  document.getElementById('val-xp').textContent=state.xp+'/'+xpNeeded;
+  document.getElementById('level-badge').textContent=stageNamesTR[state.stage];
+  document.getElementById('score-text').textContent='Skor: '+state.score;
+  document.getElementById('streak-text').textContent=state.streak>=2?'Seri: '+state.streak+' !':'';
+  const names=['','Yavrun heyecanlı!','Güçleniyor!','Evcil hayvanın gelişiyor!','Güçlü bir yaratık!','Tam evrim!'];
+  document.getElementById('pet-name').textContent=names[state.stage]||'Cevapla ve evcil hayvanını büyüt!';
+}
+function loadQuestion(){
+  clearInterval(timerInterval);
+  const qs=allQuestions[diff];
+  if(state.qIndex>=state.shuffled.length){state.qIndex=0;state.shuffled=shuffle([...Array(qs.length).keys()]);}
+  const q=qs[state.shuffled[state.qIndex]];
+  document.getElementById('question-text').textContent=q.q;
+  const opts=document.getElementById('options'); opts.innerHTML='';
+  q.opts.forEach((opt,i)=>{ const b=document.createElement('button'); b.className='opt-btn'; b.textContent=opt; b.onclick=()=>answer(i,q.ans,b); opts.appendChild(b); });
+  document.getElementById('feedback').textContent='';
+  document.getElementById('next-btn').style.display='none';
+  state.answered=false; state.petMood='neutral';
+  startTimer();
+}
+function answer(chosen,correct,btn){
+  if(state.answered)return;
+  state.answered=true; clearInterval(timerInterval);
+  document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+  document.querySelectorAll('.opt-btn')[correct].classList.add('correct');
+  const cfg=diffConfig[diff]; const timeBonus=timeLeft>=20?1:0;
+  if(chosen===correct){
+    btn.classList.add('correct'); state.score++; state.streak++;
+    state.xp+=cfg.xpPerCorrect+(state.streak>=3?1:0)+timeBonus;
+    state.happy=Math.min(100,state.happy+cfg.happyBonus+(state.streak>=3?5:0));
+    state.energy=Math.min(100,state.energy+5); state.petMood='happy';
+    const fb=document.getElementById('feedback'); fb.style.color='#3ddc97';
+    let msg='Doğru!'; if(state.streak>=3)msg+=' Seri x'+state.streak+'!'; if(timeBonus)msg+=' Hız bonusu XP!';
+    fb.textContent=msg; checkEvolve();
+  } else {
+    btn.classList.add('wrong'); state.streak=0; state.happy=Math.max(0,state.happy-8); state.energy=Math.max(0,state.energy-10); state.petMood='sad';
+    const fb=document.getElementById('feedback'); fb.style.color='#ff6b6b';
+    fb.textContent='Yanlış. Cevap: '+allQuestions[diff][state.shuffled[state.qIndex]].opts[correct];
+  }
+  state.questionsAnswered++;
+  updateStats();
+  document.getElementById('next-btn').style.display='block';
+  checkGameOver();
+}
+function checkEvolve(){
+  const xpNeeded=diffConfig[diff].xpNeeded[state.stage];
+  if(state.xp>=xpNeeded&&state.stage<stages.length-1){
+    state.xp=0; state.stage++; state.petMood='evolve';
+    showToast('★ Evcil hayvanın '+stageNamesTR[state.stage]+' oldu! ★');
+    setTimeout(()=>{state.petMood='happy';},2500); updateStats();
+  }
+}
+function checkGameOver(){
+  if(state.questionsAnswered>=GAME_QUESTIONS){
+    clearInterval(timerInterval);
+    setTimeout(()=>{ showScoreModal(); },600);
+  }
+}
+function showToast(msg){
+  const t=document.getElementById('evolve-toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// SCORE MODAL
+function showScoreModal(){
+  document.getElementById('modal-score-num').textContent=state.score+' / '+GAME_QUESTIONS;
+  const diff_label = diffConfig[diff].label;
+  document.getElementById('modal-sub').textContent=diff_label+' seviyesinde '+state.score+' doğru!';
+  document.getElementById('modal-name').value='';
+  document.getElementById('score-modal').classList.add('show');
+}
+function saveScore(){
+  const name=document.getElementById('modal-name').value.trim()||'Anonim';
+  const scores=getScores();
+  if(!scores[diff])scores[diff]=[];
+  scores[diff].push({ name, score:state.score, stage:state.stage, date:new Date().toLocaleDateString('tr-TR') });
+  scores[diff].sort((a,b)=>b.score-a.score);
+  scores[diff]=scores[diff].slice(0,10);
+  localStorage.setItem('mathpet_scores',JSON.stringify(scores));
+  closeModal();
+  resetGame();
+}
+function closeModal(){ document.getElementById('score-modal').classList.remove('show'); resetGame(); }
+function resetGame(){
+  state.score=0; state.streak=0; state.questionsAnswered=0; state.qIndex=0;
+  state.shuffled=shuffle([...Array(allQuestions[diff].length).keys()]);
+  loadQuestion(); updateStats();
+}
+function getScores(){ try{ return JSON.parse(localStorage.getItem('mathpet_scores'))||{}; }catch(e){return{};} }
+function clearScores(){ if(confirm('Tüm skorlar silinsin mi?')){ localStorage.removeItem('mathpet_scores'); renderScores(); } }
+
+// SCORES VIEW
+function showScoreTab(d){
+  currentScoreDiff=d;
+  document.querySelectorAll('.scores-tab').forEach(b=>{ b.classList.toggle('active', b.dataset.diff===d); });
+  renderScores();
+}
+function renderScores(){
+  const scores=getScores(); const list=scores[currentScoreDiff]||[];
+  const el=document.getElementById('score-list'); el.innerHTML='';
+  if(list.length===0){ el.innerHTML='<div class="no-scores">Henüz skor yok.<br>Oyna ve ilk skoru kaydet!</div>'; return; }
+  const rankLabels=['1st','2nd','3rd'];
+  const rankClasses=['gold','silver','bronze'];
+  list.forEach((item,i)=>{
+    const row=document.createElement('div'); row.className='score-row';
+    const rankClass=i<3?rankClasses[i]:'';
+    row.innerHTML=`
+      <div class="score-rank ${rankClass}">${rankLabels[i]||('#'+(i+1))}</div>
+      <div class="score-player">${item.name}</div>
+      <div class="score-details">
+        <div class="score-pts ${currentScoreDiff}">${item.score}<span style="font-size:12px;font-weight:400;color:var(--text2);"> / ${GAME_QUESTIONS}</span></div>
+        <div class="score-meta">${stageNamesTR[item.stage]||'Yumurta'} · ${item.date}</div>
+      </div>`;
+    el.appendChild(row);
+  });
+}
+
+// VIEW SWITCHING
+function showView(v){
+  document.getElementById('view-game').style.display=v==='game'?'block':'none';
+  document.getElementById('view-scores').style.display=v==='scores'?'block':'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',[,'game','scores'][i+1]===v));
+  if(v==='scores'){ renderScores(); }
+}
+
+document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+  b.onclick=()=>showView(['game','scores'][i]);
+});
+
+document.getElementById('modal-name').addEventListener('keydown',e=>{ if(e.key==='Enter')saveScore(); });
+
+document.getElementById('next-btn').addEventListener('click', ()=>{
+  if(state.questionsAnswered >= GAME_QUESTIONS) return;
+  state.qIndex++;
+  state.petMood='neutral';
+  loadQuestion();
+});
+
+loadQuestion(); updateStats();
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
+</script>
+</body>
+</html>
